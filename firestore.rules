@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll([
+        'id', 'createdAt', 'customerName', 'phoneNumber', 'email', 
+        'location', 'deliveryArea', 'productName', 'quantity', 'size', 
+        'pricePerPiece', 'deliveryFee', 'totalPrice', 'paymentMethod', 'orderStatus'
+      ]) 
+      && data.id is string && data.id.size() <= 128
+      && data.customerName is string && data.customerName.size() >= 2 && data.customerName.size() <= 100
+      && data.phoneNumber is string && data.phoneNumber.size() >= 7 && data.phoneNumber.size() <= 20
+      && data.email is string && data.email.size() <= 100
+      && data.location is string && data.location.size() >= 3 && data.location.size() <= 300
+      && data.productName is string && data.productName.size() <= 200
+      && data.quantity is int && data.quantity >= 1
+      && data.pricePerPiece is number && data.pricePerPiece > 0
+      && data.deliveryFee is number && data.deliveryFee >= 0
+      && data.totalPrice is number && data.totalPrice > 0
+      && data.paymentMethod == 'Cash On Delivery'
+      && data.orderStatus in ['New Order', 'Order Confirmed', 'Order Ongoing', 'Delivered', 'Cancelled'];
+    }
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'rajshrestha021@gmail.com';
+    }
+
+    match /orders/{orderId} {
+      // Anyone can submit a valid order during checkout
+      allow create: if isValidId(orderId) && isValidOrder(request.resource.data);
+      // ONLY authenticated admin (rajshrestha021@gmail.com) can view, update, or delete order logs
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+

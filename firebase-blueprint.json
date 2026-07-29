@@ -1,0 +1,48 @@
+{
+  "entities": {
+    "Order": {
+      "title": "Order",
+      "description": "Cash on Delivery customer order",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string" },
+        "customerName": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "phoneNumber": { "type": "string", "minLength": 7, "maxLength": 20 },
+        "email": { "type": "string", "maxLength": 100 },
+        "location": { "type": "string", "minLength": 5, "maxLength": 300 },
+        "deliveryArea": { "type": "string", "enum": ["Kathmandu Valley", "Outside Kathmandu Valley"] },
+        "productName": { "type": "string", "maxLength": 200 },
+        "quantity": { "type": "integer" },
+        "size": { "type": "string", "maxLength": 10 },
+        "pricePerPiece": { "type": "number" },
+        "deliveryFee": { "type": "number" },
+        "totalPrice": { "type": "number" },
+        "paymentMethod": { "type": "string", "enum": ["Cash On Delivery"] },
+        "orderStatus": { "type": "string", "enum": ["New Order", "Order Confirmed", "Order Ongoing", "Delivered", "Cancelled"] },
+        "notes": { "type": "string", "maxLength": 500 }
+      },
+      "required": [
+        "id",
+        "createdAt",
+        "customerName",
+        "phoneNumber",
+        "email",
+        "location",
+        "productName",
+        "quantity",
+        "pricePerPiece",
+        "deliveryFee",
+        "totalPrice",
+        "paymentMethod",
+        "orderStatus"
+      ]
+    }
+  },
+  "firestore": {
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Collection storing all incoming COD orders"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "PinP - Cash On Delivery Sales Funnel",
+  "description": "Cash On Delivery sales funnel for PinP custom printed Compass & Tide Henley Shirt with landing page, checkout, Firestore order logging, Google Sheets integration, and Resend email triggers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
