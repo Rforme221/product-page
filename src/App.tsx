@@ -15,24 +15,30 @@ import { PINP_PRODUCT } from './data/productData';
 import { getLocalOrders } from './firebase';
 
 export default function App() {
-  const [isAdminRoute, setIsAdminRoute] = useState<boolean>(() => {
+  const checkIsAdminRoute = () => {
+    const path = window.location.pathname.toLowerCase();
+    const hash = window.location.hash.toLowerCase();
+    const search = window.location.search.toLowerCase();
+
     return (
-      window.location.pathname === '/admin' ||
-      window.location.pathname.startsWith('/admin') ||
-      window.location.hash === '#admin'
+      path === '/admin' ||
+      path.startsWith('/admin') ||
+      path.endsWith('/admin') ||
+      hash === '#admin' ||
+      hash === '#/admin' ||
+      hash.includes('admin') ||
+      search.includes('admin')
     );
-  });
+  };
+
+  const [isAdminRoute, setIsAdminRoute] = useState<boolean>(() => checkIsAdminRoute());
 
   const [currentView, setCurrentView] = useState<'landing' | 'checkout' | 'thankyou'>('landing');
 
   // Listen for URL changes
   useEffect(() => {
     const handleUrlChange = () => {
-      const isAdmin =
-        window.location.pathname === '/admin' ||
-        window.location.pathname.startsWith('/admin') ||
-        window.location.hash === '#admin';
-      setIsAdminRoute(isAdmin);
+      setIsAdminRoute(checkIsAdminRoute());
     };
 
     window.addEventListener('popstate', handleUrlChange);
@@ -164,6 +170,19 @@ export default function App() {
             <p>© {new Date().getFullYear()} PinP Shirts. All rights reserved.</p>
             <p className="text-[#D4AF37]">
               Business Email: rajshrestha021@gmail.com
+            </p>
+            <p className="pt-1">
+              <a
+                href="#/admin"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.location.hash = '#/admin';
+                  setIsAdminRoute(true);
+                }}
+                className="text-[#A8A29E] hover:text-[#D4AF37] underline transition-colors"
+              >
+                🔐 Store Admin Dashboard (/admin)
+              </a>
             </p>
           </div>
         </div>
