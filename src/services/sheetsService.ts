@@ -55,6 +55,61 @@ export const SHEET_HEADERS = [
   'Notes',
 ];
 
+export async function sendOrderToWebhook(order: Order): Promise<boolean> {
+  const webhookUrl = localStorage.getItem('pinp_sheets_webhook_url');
+  if (!webhookUrl) return false;
+
+  try {
+    const rowValues = formatOrderForSheetRow(order);
+    await fetch(webhookUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orderId: order.id,
+        row: rowValues,
+        order,
+      }),
+    });
+    console.log(`Order ${order.id} sent to Google Apps Script Webhook`);
+    return true;
+  } catch (err) {
+    console.warn("Google Apps Script Webhook error:", err);
+    return false;
+  }
+}
+
+export async function syncAllOrdersToGoogleSheet(
+  orders: Order[],
+  spreadsheetId: string,
+  accessToken: string
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    const rows = [SHEET_HEADERS, ...orders.map(formatOrderForSheetRow)];
+    const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${DEFAULT_SHEET_TAB}!A1:M${rows.length}?valueInputOption=USER_ENTERED`;
+
+    const response = await fetch(updateUrl, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        values: rows,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      return { success: false, message: `Sheet update failed: ${errText}` };
+    }
+
+    return { success: true, message: `Successfully synced ${orders.length} orders to Google Sheet!` };
+  } catch (error: any) {
+    return { success: false, message: error.message || 'Network error' };
+  }
+}
+
 export async function appendOrderToGoogleSheet(
   order: Order,
   spreadsheetId: string,

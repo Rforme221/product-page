@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { Order } from '../types';
 import { submitOrderToFirestore } from '../firebase';
-import { appendOrderToGoogleSheet, TARGET_SPREADSHEET_ID } from '../services/sheetsService';
+import { appendOrderToGoogleSheet, sendOrderToWebhook, TARGET_SPREADSHEET_ID } from '../services/sheetsService';
 import { sendOrderNotificationEmails } from '../services/emailService';
 
 interface CheckoutPageProps {
@@ -135,7 +135,12 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       // 2. Write order to Firestore (with local resilience fallback)
       await submitOrderToFirestore(newOrder);
 
-      // 3. Attempt Google Sheets row write via Workspace connector if connected
+      // 3. Send to Google Apps Script Webhook (if configured)
+      sendOrderToWebhook(newOrder).catch((err) =>
+        console.warn('Webhook sync warning:', err)
+      );
+
+      // 4. Attempt Google Sheets row write via Workspace connector if connected
       if (activeSheetId && googleAccessToken) {
         try {
           await appendOrderToGoogleSheet(newOrder, activeSheetId, googleAccessToken);

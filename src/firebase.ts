@@ -107,7 +107,6 @@ export async function submitOrderToFirestore(order: Order): Promise<{ success: b
   // Always save locally first to ensure order is never lost
   saveLocalOrder(order);
 
-  const path = `orders/${order.id}`;
   try {
     const orderRef = doc(db, 'orders', order.id);
     await setDoc(orderRef, {
@@ -117,23 +116,45 @@ export async function submitOrderToFirestore(order: Order): Promise<{ success: b
     console.log(`Order ${order.id} saved to Firestore collection 'orders'`);
     return { success: true, id: order.id };
   } catch (error) {
-    console.warn("Firestore write failed, using local resilience store:", error);
-    // Don't throw to customer if local save succeeded!
+    console.warn("Firestore write notice (saved in local backup):", error);
     return { success: true, id: order.id };
   }
 }
 
 export async function fetchOrdersFromFirestore(): Promise<Order[]> {
+  const localOrders = getLocalOrders();
+  let remoteOrders: Order[] = [];
+
   try {
     const ordersCol = collection(db, 'orders');
-    const q = query(ordersCol, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    const remoteOrders: Order[] = snapshot.docs.map(doc => doc.data() as Order);
-    if (remoteOrders.length > 0) return remoteOrders;
+    const snapshot = await getDocs(ordersCol);
+    remoteOrders = snapshot.docs.map(doc => {
+      const data = doc.data() as Order;
+      return data;
+    });
+    console.log(`Fetched ${remoteOrders.length} orders from Firestore`);
   } catch (err) {
-    console.warn("Could not fetch remote Firestore orders, loading cached local orders:", err);
+    console.warn("Could not fetch remote Firestore orders, using cached local orders:", err);
   }
-  return getLocalOrders();
+
+  // Merge remote and local orders, removing duplicates by order ID
+  const orderMap = new Map<string, Order>();
+  
+  // Local first
+  localOrders.forEach(o => {
+    if (o && o.id) orderMap.set(o.id, o);
+  });
+  
+  // Remote overwrites local (fresher status)
+  remoteOrders.forEach(o => {
+    if (o && o.id) orderMap.set(o.id, o);
+  });
+
+  const merged = Array.from(orderMap.values());
+  // Sort descending by date
+  merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  return merged;
 }
 
 export async function updateOrderStatusInFirestore(orderId: string, newStatus: Order['orderStatus']): Promise<boolean> {
